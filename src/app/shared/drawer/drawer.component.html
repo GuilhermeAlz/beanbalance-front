@@ -1,0 +1,24 @@
+@if (open()) {
+  <div class="overlay" (click)="closed.emit()"></div>
+}
+
+<div class="panel" [style.transform]="open() ? 'translateX(0)' : 'translateX(100%)'">
+  <div class="header">
+    <span class="title">{{ title() }}</span>
+    <button
+      class="close-btn"
+      type="button"
+      (mouseenter)="closeHovered.set(true)"
+      (mouseleave)="closeHovered.set(false)"
+      (click)="closed.emit()"
+    >[X]</button>
+  </div>
+
+  <div class="body">
+    <ng-content />
+  </div>
+
+  <div class="footer">
+    <ng-content select="[drawerFooter]" />
+  </div>
+</div>
