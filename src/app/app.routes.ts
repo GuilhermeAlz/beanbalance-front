@@ -28,33 +28,31 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent),
       },
-      // ── Pages below are not yet implemented ──────────────────────────
-      // {
-      //   path: 'accounts',
-      //   loadComponent: () =>
-      //     import('./pages/accounts/accounts.component').then(m => m.AccountsComponent),
-      // },
-      // {
-      //   path: 'accounts/:id',
-      //   loadComponent: () =>
-      //     import('./pages/account-detail/account-detail.component').then(m => m.AccountDetailComponent),
-      // },
-      // {
-      //   path: 'transactions',
-      //   loadComponent: () =>
-      //     import('./pages/transactions/transactions.component').then(m => m.TransactionsComponent),
-      // },
-      // {
-      //   path: 'budgets',
-      //   loadComponent: () =>
-      //     import('./pages/budgets/budgets.component').then(m => m.BudgetsComponent),
-      // },
-      // {
-      //   path: 'categories',
-      //   loadComponent: () =>
-      //     import('./pages/categories/categories.component').then(m => m.CategoriesComponent),
-      // },
-      // ─────────────────────────────────────────────────────────────────
+      {
+        path: 'accounts',
+        loadComponent: () =>
+          import('./pages/accounts/accounts.component').then(m => m.AccountsComponent),
+      },
+      {
+        path: 'accounts/:id',
+        loadComponent: () =>
+          import('./pages/account-detail/account-detail.component').then(m => m.AccountDetailComponent),
+      },
+      {
+        path: 'transactions',
+        loadComponent: () =>
+          import('./pages/transactions/transactions.component').then(m => m.TransactionsComponent),
+      },
+      {
+        path: 'budgets',
+        loadComponent: () =>
+          import('./pages/budgets/budgets.component').then(m => m.BudgetsComponent),
+      },
+      {
+        path: 'categories',
+        loadComponent: () =>
+          import('./pages/categories/categories.component').then(m => m.CategoriesComponent),
+      },
     ],
   },
   {
