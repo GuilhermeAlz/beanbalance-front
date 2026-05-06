@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 @Component({
   selector: 'app-drawer',
@@ -11,6 +11,4 @@ export class DrawerComponent {
   title = input('');
 
   closed = output<void>();
-
-  closeHovered = signal(false);
 }

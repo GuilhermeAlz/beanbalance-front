@@ -137,6 +137,8 @@
 .col-desc   { color: #ffffff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-cat    { color: #888888; }
 
+.col-type { }
+
 .col-amount {
   color: #888888;
   text-align: right;
@@ -186,4 +188,10 @@
   margin-top: 16px;
   font-size: 11px;
   color: #888888;
+}
+
+.drawer-footer {
+  display: flex;
+  gap: 8px;
+  width: 100%;
 }

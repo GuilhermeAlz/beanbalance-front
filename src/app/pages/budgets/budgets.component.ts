@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { AppStateService, formatBRL, formatDate } from '../../core/services/app-state.service';
+import { AppStateService, formatBRL } from '../../core/services/app-state.service';
 import { Budget } from '../../core/models/app.models';
 import { ButtonComponent } from '../../shared/button/button.component';
 import { EmptyStateComponent } from '../../shared/empty-state/empty-state.component';
@@ -29,8 +29,7 @@ const MONTH_NAMES = [
 export class BudgetsComponent {
   state = inject(AppStateService);
 
-  readonly formatBRL  = formatBRL;
-  readonly formatDate = formatDate;
+  readonly formatBRL = formatBRL;
 
   currentMonth = signal('2026-04');
 

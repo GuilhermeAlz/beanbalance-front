@@ -1,17 +1,33 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AppStateService, formatBRL, formatDate } from '../../core/services/app-state.service';
+import { AccountType } from '../../core/models/app.models';
 import { BadgeComponent } from '../../shared/badge/badge.component';
 import { ButtonComponent } from '../../shared/button/button.component';
 import { DeleteModalComponent } from '../../shared/delete-modal/delete-modal.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
+import { DrawerComponent } from '../../shared/drawer/drawer.component';
+import { FormFieldComponent } from '../../shared/form-field/form-field.component';
+import { InputComponent } from '../../shared/input/input.component';
+import { SelectComponent } from '../../shared/select/select.component';
 
 const PAGE_SIZE = 10;
+
+const ACCOUNT_TYPE_OPTIONS = [
+  { value: 'CHECKING',    label: 'CHECKING' },
+  { value: 'SAVINGS',     label: 'SAVINGS' },
+  { value: 'CREDIT CARD', label: 'CREDIT CARD' },
+  { value: 'INVESTMENT',  label: 'INVESTMENT' },
+  { value: 'CASH',        label: 'CASH' },
+];
 
 @Component({
   selector: 'app-account-detail',
   standalone: true,
-  imports: [BadgeComponent, ButtonComponent, DeleteModalComponent, PaginationComponent],
+  imports: [
+    BadgeComponent, ButtonComponent, DeleteModalComponent, PaginationComponent,
+    DrawerComponent, FormFieldComponent, InputComponent, SelectComponent,
+  ],
   templateUrl: './account-detail.component.html',
   styleUrl: './account-detail.component.css',
 })
@@ -21,8 +37,9 @@ export class AccountDetailComponent {
   state          = inject(AppStateService);
   private router = inject(Router);
 
-  readonly formatBRL  = formatBRL;
-  readonly formatDate = formatDate;
+  readonly formatBRL   = formatBRL;
+  readonly formatDate  = formatDate;
+  readonly typeOptions = ACCOUNT_TYPE_OPTIONS;
 
   account = computed(() => this.state.accounts().find(a => a.id === this.id()));
 
@@ -40,6 +57,11 @@ export class AccountDetailComponent {
     const p = this.page();
     return this.accountTxs().slice((p - 1) * PAGE_SIZE, p * PAGE_SIZE);
   });
+
+  editDrawerOpen = signal(false);
+  formName       = signal('');
+  formType       = signal('');
+  formBalance    = signal('');
 
   deleteAccountModal = signal(false);
   deleteTxId         = signal<string | null>(null);
@@ -69,6 +91,27 @@ export class AccountDetailComponent {
 
   goToAccounts() {
     this.router.navigate(['/accounts']);
+  }
+
+  openEditAccount() {
+    const acc = this.account();
+    if (!acc) return;
+    this.formName.set(acc.name);
+    this.formType.set(acc.type);
+    this.formBalance.set(acc.balance.toString());
+    this.editDrawerOpen.set(true);
+  }
+
+  handleSaveAccount() {
+    const acc = this.account();
+    if (!acc || !this.formName() || !this.formType()) return;
+    const balance = parseFloat(this.formBalance()) || 0;
+    this.state.updateAccount(acc.id, {
+      name: this.formName(),
+      type: this.formType() as AccountType,
+      balance,
+    });
+    this.editDrawerOpen.set(false);
   }
 
   confirmDeleteAccount() {

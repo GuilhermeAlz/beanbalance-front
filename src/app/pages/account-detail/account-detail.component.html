@@ -18,7 +18,7 @@
       <div class="acc-created">CREATED {{ formatDate(account()!.createdAt) }}</div>
     </div>
     <div class="acc-header-actions">
-      <app-button variant="ghost" (clicked)="goToAccounts()">EDIT ACCOUNT</app-button>
+      <app-button variant="ghost" (clicked)="openEditAccount()">EDIT ACCOUNT</app-button>
       <app-button (clicked)="deleteAccountModal.set(true)">DELETE ACCOUNT</app-button>
     </div>
   </div>
@@ -83,4 +83,34 @@
     (confirmed)="confirmDeleteTx()"
     (cancelled)="deleteTxId.set(null)"
   />
+
+  <app-drawer
+    [open]="editDrawerOpen()"
+    title="EDIT ACCOUNT"
+    (closed)="editDrawerOpen.set(false)"
+  >
+    <app-form-field label="ACCOUNT NAME">
+      <app-input [value]="formName()" (valueChange)="formName.set($event)" />
+    </app-form-field>
+    <app-form-field label="ACCOUNT TYPE">
+      <app-select
+        [value]="formType()"
+        [options]="typeOptions"
+        placeholder="SELECT TYPE..."
+        (valueChange)="formType.set($event)"
+      />
+    </app-form-field>
+    <app-form-field label="BALANCE">
+      <app-input
+        [value]="formBalance()"
+        (valueChange)="formBalance.set($event)"
+        type="number"
+        textAlign="right"
+      />
+    </app-form-field>
+    <div drawerFooter class="drawer-footer">
+      <app-button variant="ghost" [extraStyle]="{ flex: '1' }" (clicked)="editDrawerOpen.set(false)">CANCEL</app-button>
+      <app-button [extraStyle]="{ flex: '2' }" (clicked)="handleSaveAccount()">SAVE ACCOUNT</app-button>
+    </div>
+  </app-drawer>
 }

@@ -3,9 +3,8 @@ import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } fro
 import { NgStyle } from '@angular/common';
 import { AppStateService } from '../core/services/app-state.service';
 import { ToastContainerComponent } from '../shared/toast-container/toast-container.component';
-import { filter } from 'rxjs/operators';
+import { filter, map, startWith } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { map, startWith } from 'rxjs/operators';
 
 const navItems = [
   { path: '/dashboard',    label: 'DASHBOARD',    icon: '#' },
