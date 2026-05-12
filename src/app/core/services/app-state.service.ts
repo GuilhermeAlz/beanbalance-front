@@ -10,7 +10,9 @@ export function formatBRL(value: number): string {
 
 export function formatDate(dateStr: string): string {
   if (!dateStr) return '';
-  const [y, m, d] = dateStr.split('-');
+  const [datePart] = dateStr.split('T');
+  const [y, m, d] = datePart.split('-');
+  if (!y || !m || !d) return dateStr;
   return `${d}/${m}/${y}`;
 }
 
