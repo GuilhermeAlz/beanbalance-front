@@ -20,7 +20,7 @@
     @for (b of monthBudgets(); track b.id) {
       <div class="card">
         <div class="card-header">
-          <span class="cat-name">{{ getCategoryName(b.categoryId).toUpperCase() }}</span>
+          <span class="cat-name">{{ b.categoryName.toUpperCase() }}</span>
           @if (isOver(b)) {
             <span class="over-badge">OVER BUDGET</span>
           }

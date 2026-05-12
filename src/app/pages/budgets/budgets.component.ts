@@ -1,5 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { AppStateService, formatBRL } from '../../core/services/app-state.service';
+import { BudgetApiService } from '../../core/services/budget-api.service';
+import { CategoryApiService } from '../../core/services/category-api.service';
 import { Budget } from '../../core/models/app.models';
 import { ButtonComponent } from '../../shared/button/button.component';
 import { EmptyStateComponent } from '../../shared/empty-state/empty-state.component';
@@ -26,19 +28,21 @@ const MONTH_NAMES = [
   templateUrl: './budgets.component.html',
   styleUrl: './budgets.component.css',
 })
-export class BudgetsComponent {
-  state = inject(AppStateService);
+export class BudgetsComponent implements OnInit {
+  private state       = inject(AppStateService);
+  private budgetApi   = inject(BudgetApiService);
+  private categoryApi = inject(CategoryApiService);
 
   readonly formatBRL = formatBRL;
 
-  currentMonth = signal('2026-04');
+  currentMonth = signal(new Date().toISOString().slice(0, 7));
 
   monthBudgets = computed(() =>
-    this.state.budgets().filter(b => b.month === this.currentMonth())
+    this.budgetApi.items().filter(b => b.month === this.currentMonth())
   );
 
   categoryOptions = computed(() =>
-    this.state.categories().map(c => ({ value: c.id, label: c.name.toUpperCase() }))
+    this.categoryApi.items().map(c => ({ value: c.id, label: c.name.toUpperCase() }))
   );
 
   monthLabel = computed(() => this.formatMonthLabel(this.currentMonth()));
@@ -49,27 +53,33 @@ export class BudgetsComponent {
 
   formCategoryId = signal('');
   formLimit      = signal('');
-  formMonth      = signal('2026-04');
+  formMonth      = signal(new Date().toISOString().slice(0, 7));
 
   deleteTarget = computed(() =>
-    this.state.budgets().find(b => b.id === this.deleteId())
+    this.budgetApi.items().find(b => b.id === this.deleteId())
   );
 
-  deleteTargetCatName = computed(() => {
-    const cat = this.state.categories().find(c => c.id === this.deleteTarget()?.categoryId);
-    return cat ? cat.name.toUpperCase() : '';
-  });
+  deleteTargetCatName = computed(() =>
+    this.deleteTarget()?.categoryName?.toUpperCase() ?? ''
+  );
+
+  ngOnInit(): void {
+    this.categoryApi.load();
+    this.budgetApi.load(this.currentMonth());
+  }
 
   prevMonth() {
     const [y, m] = this.currentMonth().split('-').map(Number);
     const d = new Date(y, m - 2, 1);
     this.currentMonth.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    this.budgetApi.load(this.currentMonth());
   }
 
   nextMonth() {
     const [y, m] = this.currentMonth().split('-').map(Number);
     const d = new Date(y, m, 1);
     this.currentMonth.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    this.budgetApi.load(this.currentMonth());
   }
 
   formatMonthLabel(month: string): string {
@@ -96,32 +106,31 @@ export class BudgetsComponent {
   handleSave() {
     if (!this.formCategoryId() || !this.formLimit()) return;
     const id = this.editId();
+    const payload = {
+      categoryId:     this.formCategoryId(),
+      limitAmount:    parseFloat(this.formLimit()) || 0,
+      referenceMonth: this.formMonth(),
+    };
     if (id) {
-      this.state.updateBudget(id, {
-        categoryId: this.formCategoryId(),
-        limit: parseFloat(this.formLimit()) || 0,
-        month: this.formMonth(),
+      this.budgetApi.update(id, payload).subscribe({
+        next: () => this.drawerOpen.set(false),
+        error: () => this.state.showToast('error', 'FAILED TO UPDATE BUDGET'),
       });
     } else {
-      this.state.addBudget({
-        categoryId: this.formCategoryId(),
-        limit:      parseFloat(this.formLimit()) || 0,
-        spent:      0,
-        month:      this.formMonth(),
+      this.budgetApi.create(payload).subscribe({
+        next: () => this.drawerOpen.set(false),
+        error: () => this.state.showToast('error', 'FAILED TO CREATE BUDGET'),
       });
     }
-    this.drawerOpen.set(false);
   }
 
   confirmDelete() {
     const id = this.deleteId();
     if (!id) return;
-    this.state.deleteBudget(id);
-    this.deleteId.set(null);
-  }
-
-  getCategoryName(catId: string): string {
-    return this.state.categories().find(c => c.id === catId)?.name || '—';
+    this.budgetApi.delete(id).subscribe({
+      next: () => this.deleteId.set(null),
+      error: () => this.state.showToast('error', 'FAILED TO DELETE BUDGET'),
+    });
   }
 
   isOver(b: Budget): boolean {
