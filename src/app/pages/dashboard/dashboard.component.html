@@ -5,21 +5,21 @@
     <div class="card">
       <div class="card-label">TOTAL BALANCE</div>
       <div class="card-value">{{ formatBRL(totalBalance()) }}</div>
-      <div class="card-sub">ACROSS {{ state.accounts().length }} ACCOUNTS</div>
+      <div class="card-sub">ACROSS {{ accountApi.items().length }} ACCOUNTS</div>
     </div>
 
     <!-- This Month Income -->
     <div class="card">
       <div class="card-label">THIS MONTH INCOME</div>
       <div class="card-value">+ {{ formatBRL(monthIncome()) }}</div>
-      <div class="card-sub">APRIL 2026</div>
+      <div class="card-sub">{{ currentMonth | uppercase }}</div>
     </div>
 
     <!-- This Month Expenses -->
     <div class="card">
       <div class="card-label">THIS MONTH EXPENSES</div>
       <div class="card-value card-value-dim">− {{ formatBRL(monthExpense()) }}</div>
-      <div class="card-sub">APRIL 2026</div>
+      <div class="card-sub">{{ currentMonth | uppercase }}</div>
     </div>
   </div>
 
@@ -63,10 +63,10 @@
     <div>
       <app-section-header title="BUDGET OVERVIEW" />
       <div class="budget-box">
-        @for (b of state.budgets(); track b.id; let i = $index) {
+        @for (b of budgets(); track b.id; let i = $index) {
           <div>
             <div class="budget-row">
-              <span class="budget-name">{{ getCat(b.categoryId)?.name?.toUpperCase() || '—' }}</span>
+              <span class="budget-name">{{ b.categoryName.toUpperCase() }}</span>
               @if (b.spent > b.limit) {
                 <app-badge variant="over">OVER BUDGET</app-badge>
               }
@@ -80,7 +80,7 @@
                 {{ formatBRL(b.limit - b.spent) }} REMAINING
               }
             </div>
-            @if (i < state.budgets().length - 1) {
+            @if (i < budgets().length - 1) {
               <div class="budget-divider"></div>
             }
           </div>

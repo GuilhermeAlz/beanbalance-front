@@ -25,8 +25,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(outgoing).pipe(
     catchError(err => {
-      // Only attempt refresh for Spring Boot API 401s, not for Auth MS calls
-      if (err.status !== 401 || !req.url.startsWith(environment.apiUrl)) {
+      // Only attempt refresh for Spring Boot API 401s (not auth MS calls)
+      if (err.status !== 401 || req.url.includes('/api/auth/')) {
         return throwError(() => err);
       }
 
