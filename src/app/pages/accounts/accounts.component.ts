@@ -1,6 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AppStateService, formatBRL, formatDate } from '../../core/services/app-state.service';
+import { AccountApiService } from '../../core/services/account-api.service';
 import { Account, AccountType } from '../../core/models/app.models';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { ButtonComponent } from '../../shared/button/button.component';
@@ -15,7 +16,7 @@ import { BadgeComponent } from '../../shared/badge/badge.component';
 const ACCOUNT_TYPE_OPTIONS = [
   { value: 'CHECKING',    label: 'CHECKING' },
   { value: 'SAVINGS',     label: 'SAVINGS' },
-  { value: 'CREDIT CARD', label: 'CREDIT CARD' },
+  { value: 'CREDIT_CARD', label: 'CREDIT CARD' },
   { value: 'INVESTMENT',  label: 'INVESTMENT' },
   { value: 'CASH',        label: 'CASH' },
 ];
@@ -31,11 +32,13 @@ const ACCOUNT_TYPE_OPTIONS = [
   templateUrl: './accounts.component.html',
   styleUrl: './accounts.component.css',
 })
-export class AccountsComponent {
-  state          = inject(AppStateService);
-  private router = inject(Router);
+export class AccountsComponent implements OnInit {
+  private state      = inject(AppStateService);
+  private accountApi = inject(AccountApiService);
+  private router     = inject(Router);
 
-  accounts = this.state.accounts;
+  accounts = this.accountApi.items;
+  loading  = this.accountApi.loading;
 
   readonly typeOptions = ACCOUNT_TYPE_OPTIONS;
   readonly formatBRL   = formatBRL;
@@ -50,6 +53,10 @@ export class AccountsComponent {
   formBalance = signal('');
 
   deleteTarget = computed(() => this.accounts().find(a => a.id === this.deleteId()));
+
+  ngOnInit(): void {
+    this.accountApi.load();
+  }
 
   openCreate() {
     this.editId.set(null);
@@ -71,27 +78,27 @@ export class AccountsComponent {
     if (!this.formName() || !this.formType()) return;
     const balance = parseFloat(this.formBalance()) || 0;
     const id = this.editId();
+    const payload = { name: this.formName(), type: this.formType() as AccountType, balance };
     if (id) {
-      this.state.updateAccount(id, {
-        name: this.formName(),
-        type: this.formType() as AccountType,
-        balance,
+      this.accountApi.update(id, payload).subscribe({
+        next: () => this.drawerOpen.set(false),
+        error: () => this.state.showToast('error', 'FAILED TO UPDATE ACCOUNT'),
       });
     } else {
-      this.state.addAccount({
-        name: this.formName(),
-        type: this.formType() as AccountType,
-        balance,
+      this.accountApi.create(payload).subscribe({
+        next: () => this.drawerOpen.set(false),
+        error: () => this.state.showToast('error', 'FAILED TO CREATE ACCOUNT'),
       });
     }
-    this.drawerOpen.set(false);
   }
 
   confirmDelete() {
     const id = this.deleteId();
     if (!id) return;
-    this.state.deleteAccount(id);
-    this.deleteId.set(null);
+    this.accountApi.delete(id).subscribe({
+      next: () => this.deleteId.set(null),
+      error: () => this.state.showToast('error', 'FAILED TO DELETE ACCOUNT'),
+    });
   }
 
   goToDetail(id: string) {

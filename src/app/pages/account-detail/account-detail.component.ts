@@ -1,6 +1,8 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AppStateService, formatBRL, formatDate } from '../../core/services/app-state.service';
+import { AccountApiService } from '../../core/services/account-api.service';
+import { TransactionApiService } from '../../core/services/transaction-api.service';
 import { AccountType } from '../../core/models/app.models';
 import { BadgeComponent } from '../../shared/badge/badge.component';
 import { ButtonComponent } from '../../shared/button/button.component';
@@ -16,7 +18,7 @@ const PAGE_SIZE = 10;
 const ACCOUNT_TYPE_OPTIONS = [
   { value: 'CHECKING',    label: 'CHECKING' },
   { value: 'SAVINGS',     label: 'SAVINGS' },
-  { value: 'CREDIT CARD', label: 'CREDIT CARD' },
+  { value: 'CREDIT_CARD', label: 'CREDIT CARD' },
   { value: 'INVESTMENT',  label: 'INVESTMENT' },
   { value: 'CASH',        label: 'CASH' },
 ];
@@ -31,20 +33,22 @@ const ACCOUNT_TYPE_OPTIONS = [
   templateUrl: './account-detail.component.html',
   styleUrl: './account-detail.component.css',
 })
-export class AccountDetailComponent {
+export class AccountDetailComponent implements OnInit {
   id = input<string>('');
 
-  state          = inject(AppStateService);
-  private router = inject(Router);
+  private state      = inject(AppStateService);
+  private accountApi = inject(AccountApiService);
+  private txApi      = inject(TransactionApiService);
+  private router     = inject(Router);
 
   readonly formatBRL   = formatBRL;
   readonly formatDate  = formatDate;
   readonly typeOptions = ACCOUNT_TYPE_OPTIONS;
 
-  account = computed(() => this.state.accounts().find(a => a.id === this.id()));
+  account = computed(() => this.accountApi.items().find(a => a.id === this.id()));
 
   accountTxs = computed(() =>
-    [...this.state.transactions()]
+    [...this.txApi.items()]
       .filter(t => t.accountId === this.id())
       .sort((a, b) => b.date.localeCompare(a.date))
   );
@@ -67,7 +71,7 @@ export class AccountDetailComponent {
   deleteTxId         = signal<string | null>(null);
 
   deleteTxTarget = computed(() =>
-    this.state.transactions().find(t => t.id === this.deleteTxId())
+    this.txApi.items().find(t => t.id === this.deleteTxId())
   );
 
   showingStart = computed(() =>
@@ -77,8 +81,13 @@ export class AccountDetailComponent {
     Math.min(this.page() * PAGE_SIZE, this.accountTxs().length)
   );
 
+  ngOnInit(): void {
+    this.accountApi.load();
+    this.txApi.load();
+  }
+
   getCategoryName(catId: string): string {
-    return this.state.categories().find(c => c.id === catId)?.name || '—';
+    return this.txApi.items().find(t => t.categoryId === catId)?.categoryName || '—';
   }
 
   formatIndex(n: number): string {
@@ -106,25 +115,31 @@ export class AccountDetailComponent {
     const acc = this.account();
     if (!acc || !this.formName() || !this.formType()) return;
     const balance = parseFloat(this.formBalance()) || 0;
-    this.state.updateAccount(acc.id, {
+    this.accountApi.update(acc.id, {
       name: this.formName(),
       type: this.formType() as AccountType,
       balance,
+    }).subscribe({
+      next: () => this.editDrawerOpen.set(false),
+      error: () => this.state.showToast('error', 'FAILED TO UPDATE ACCOUNT'),
     });
-    this.editDrawerOpen.set(false);
   }
 
   confirmDeleteAccount() {
     const acc = this.account();
     if (!acc) return;
-    this.state.deleteAccount(acc.id);
-    this.router.navigate(['/accounts']);
+    this.accountApi.delete(acc.id).subscribe({
+      next: () => this.router.navigate(['/accounts']),
+      error: () => this.state.showToast('error', 'FAILED TO DELETE ACCOUNT'),
+    });
   }
 
   confirmDeleteTx() {
     const id = this.deleteTxId();
     if (!id) return;
-    this.state.deleteTransaction(id);
-    this.deleteTxId.set(null);
+    this.txApi.delete(id).subscribe({
+      next: () => this.deleteTxId.set(null),
+      error: () => this.state.showToast('error', 'FAILED TO DELETE TRANSACTION'),
+    });
   }
 }
