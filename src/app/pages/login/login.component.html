@@ -15,7 +15,7 @@
       <input
         type="email"
         [value]="email()"
-        (input)="email.set($any($event.target).value)"
+        (input)="setEmail($any($event.target).value)"
         (focus)="emailFocused.set(true)"
         (blur)="emailFocused.set(false)"
         [ngStyle]="emailInputStyle()"
@@ -27,12 +27,16 @@
       <input
         type="password"
         [value]="password()"
-        (input)="password.set($any($event.target).value)"
+        (input)="setPassword($any($event.target).value)"
         (focus)="passFocused.set(true)"
         (blur)="passFocused.set(false)"
         [ngStyle]="passInputStyle()"
       />
     </div>
+
+    @if (authError()) {
+      <div class="auth-error">{{ authError() }}</div>
+    }
 
     <button
       type="submit"
