@@ -1,5 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { AppStateService, formatBRL, formatDate } from '../../core/services/app-state.service';
+import { AccountApiService } from '../../core/services/account-api.service';
+import { TransactionApiService } from '../../core/services/transaction-api.service';
+import { CategoryApiService } from '../../core/services/category-api.service';
 import { TransactionType } from '../../core/models/app.models';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { ButtonComponent } from '../../shared/button/button.component';
@@ -24,8 +27,11 @@ const PAGE_SIZE = 10;
   templateUrl: './transactions.component.html',
   styleUrl: './transactions.component.css',
 })
-export class TransactionsComponent {
-  state = inject(AppStateService);
+export class TransactionsComponent implements OnInit {
+  private state       = inject(AppStateService);
+  private txApi       = inject(TransactionApiService);
+  private accountApi  = inject(AccountApiService);
+  private categoryApi = inject(CategoryApiService);
 
   readonly formatBRL  = formatBRL;
   readonly formatDate = formatDate;
@@ -62,12 +68,18 @@ export class TransactionsComponent {
   formCategoryId  = signal('');
   formDescription = signal('');
 
+  ngOnInit(): void {
+    this.txApi.load();
+    this.accountApi.load();
+    this.categoryApi.load();
+  }
+
   accountOptions = computed(() =>
-    this.state.accounts().map(a => ({ value: a.id, label: a.name.toUpperCase() }))
+    this.accountApi.items().map(a => ({ value: a.id, label: a.name.toUpperCase() }))
   );
 
   categoryOptions = computed(() =>
-    this.state.categories().map(c => ({ value: c.id, label: c.name.toUpperCase() }))
+    this.categoryApi.items().map(c => ({ value: c.id, label: c.name.toUpperCase() }))
   );
 
   allAccountOptions = computed(() => [
@@ -81,7 +93,7 @@ export class TransactionsComponent {
   ]);
 
   filtered = computed(() => {
-    let txs = [...this.state.transactions()].sort((a, b) => b.date.localeCompare(a.date));
+    let txs = [...this.txApi.items()].sort((a, b) => b.date.localeCompare(a.date));
     const fa = this.filterAccount();
     const fc = this.filterCategory();
     const ft = this.filterType();
@@ -101,11 +113,11 @@ export class TransactionsComponent {
   });
 
   deleteTarget = computed(() =>
-    this.state.transactions().find(t => t.id === this.deleteId())
+    this.txApi.items().find(t => t.id === this.deleteId())
   );
 
   deleteAccName = computed(() => {
-    const acc = this.state.accounts().find(a => a.id === this.deleteTarget()?.accountId);
+    const acc = this.accountApi.items().find(a => a.id === this.deleteTarget()?.accountId);
     return acc ? acc.name.toUpperCase() : '';
   });
 
@@ -140,23 +152,26 @@ export class TransactionsComponent {
 
   handleSave() {
     if (!this.formAmount() || !this.formAccountId() || !this.formCategoryId()) return;
-    this.state.addTransaction({
+    this.txApi.create({
       amount:      parseFloat(this.formAmount()) || 0,
       type:        this.formType(),
       date:        this.formDate(),
       accountId:   this.formAccountId(),
       categoryId:  this.formCategoryId(),
       description: this.formDescription(),
+    }).subscribe({
+      next: () => { this.drawerOpen.set(false); this.resetForm(); },
+      error: () => this.state.showToast('error', 'FAILED TO CREATE TRANSACTION'),
     });
-    this.drawerOpen.set(false);
-    this.resetForm();
   }
 
   confirmDelete() {
     const id = this.deleteId();
     if (!id) return;
-    this.state.deleteTransaction(id);
-    this.deleteId.set(null);
+    this.txApi.delete(id).subscribe({
+      next: () => this.deleteId.set(null),
+      error: () => this.state.showToast('error', 'FAILED TO DELETE TRANSACTION'),
+    });
   }
 
   setFormType(v: string) {
@@ -173,11 +188,11 @@ export class TransactionsComponent {
   }
 
   getCategoryName(catId: string): string {
-    return this.state.categories().find(c => c.id === catId)?.name || '—';
+    return this.categoryApi.items().find(c => c.id === catId)?.name || '—';
   }
 
   getAccountFirstWord(accId: string): string {
-    const acc = this.state.accounts().find(a => a.id === accId);
+    const acc = this.accountApi.items().find(a => a.id === accId);
     return acc ? acc.name.split(' ')[0].toUpperCase() : '—';
   }
 

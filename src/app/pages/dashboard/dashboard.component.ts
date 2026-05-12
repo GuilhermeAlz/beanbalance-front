@@ -1,6 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, OnInit, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AppStateService, formatBRL, formatDate } from '../../core/services/app-state.service';
+import { AccountApiService } from '../../core/services/account-api.service';
+import { TransactionApiService } from '../../core/services/transaction-api.service';
+import { CategoryApiService } from '../../core/services/category-api.service';
 import { SectionHeaderComponent } from '../../shared/section-header/section-header.component';
 import { ProgressBarComponent } from '../../shared/progress-bar/progress-bar.component';
 import { BadgeComponent } from '../../shared/badge/badge.component';
@@ -12,45 +15,55 @@ import { BadgeComponent } from '../../shared/badge/badge.component';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
-export class DashboardComponent {
-  private router = inject(Router);
-  state = inject(AppStateService);
+export class DashboardComponent implements OnInit {
+  private router      = inject(Router);
+  private state       = inject(AppStateService);
+  private accountApi  = inject(AccountApiService);
+  private txApi       = inject(TransactionApiService);
+  private categoryApi = inject(CategoryApiService);
 
   formatBRL = formatBRL;
   formatDate = formatDate;
 
+  ngOnInit(): void {
+    this.accountApi.load();
+    this.txApi.load();
+    this.categoryApi.load();
+  }
+
   totalBalance = computed(() =>
-    this.state.accounts().reduce((s, a) => s + a.balance, 0)
+    this.accountApi.items().reduce((s, a) => s + a.balance, 0)
   );
 
-  private aprilTxs = computed(() =>
-    this.state.transactions().filter(t => t.date.startsWith('2026-04'))
-  );
+  private currentMonthTxs = computed(() => {
+    const month = new Date().toISOString().slice(0, 7);
+    return this.txApi.items().filter(t => t.date.startsWith(month));
+  });
 
   monthIncome = computed(() =>
-    this.aprilTxs().filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0)
+    this.currentMonthTxs().filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0)
   );
 
   monthExpense = computed(() =>
-    this.aprilTxs().filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0)
+    this.currentMonthTxs().filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0)
   );
 
   recent = computed(() =>
-    [...this.state.transactions()]
+    [...this.txApi.items()]
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 5)
   );
 
   getCat(id: string) {
-    return this.state.categories().find(c => c.id === id);
+    return this.categoryApi.items().find(c => c.id === id);
   }
 
   getAcc(id: string) {
-    return this.state.accounts().find(a => a.id === id);
+    return this.accountApi.items().find(a => a.id === id);
   }
 
   getAccLabel(id: string): string {
-    const acc = this.state.accounts().find(a => a.id === id);
+    const acc = this.accountApi.items().find(a => a.id === id);
     return acc ? acc.name.split(' ')[0].toUpperCase() : '—';
   }
 

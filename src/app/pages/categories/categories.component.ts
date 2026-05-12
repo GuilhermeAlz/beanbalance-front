@@ -1,5 +1,6 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { AppStateService, formatDate } from '../../core/services/app-state.service';
+import { CategoryApiService } from '../../core/services/category-api.service';
 import { Category } from '../../core/models/app.models';
 import { PageHeaderComponent } from '../../shared/page-header/page-header.component';
 import { ButtonComponent } from '../../shared/button/button.component';
@@ -21,13 +22,18 @@ import { DeleteModalComponent } from '../../shared/delete-modal/delete-modal.com
   templateUrl: './categories.component.html',
   styleUrl: './categories.component.css',
 })
-export class CategoriesComponent {
-  state = inject(AppStateService);
+export class CategoriesComponent implements OnInit {
+  private state       = inject(AppStateService);
+  private categoryApi = inject(CategoryApiService);
 
   readonly formatDate = formatDate;
 
-  systemCats = computed(() => this.state.categories().filter(c => c.type === 'SYSTEM'));
-  customCats = computed(() => this.state.categories().filter(c => c.type === 'CUSTOM'));
+  systemCats = computed(() => this.categoryApi.items().filter(c => c.type === 'SYSTEM'));
+  customCats = computed(() => this.categoryApi.items().filter(c => c.type === 'CUSTOM'));
+
+  ngOnInit(): void {
+    this.categoryApi.load();
+  }
 
   drawerOpen = signal(false);
   editId     = signal<string | null>(null);
@@ -37,7 +43,7 @@ export class CategoriesComponent {
   formDescription = signal('');
 
   deleteTarget = computed(() =>
-    this.state.categories().find(c => c.id === this.deleteId())
+    this.categoryApi.items().find(c => c.id === this.deleteId())
   );
 
   openCreate() {
@@ -57,24 +63,26 @@ export class CategoriesComponent {
   handleSave() {
     if (!this.formName()) return;
     const id = this.editId();
+    const payload = { name: this.formName(), description: this.formDescription() };
     if (id) {
-      this.state.updateCategory(id, {
-        name:        this.formName(),
-        description: this.formDescription(),
+      this.categoryApi.update(id, payload).subscribe({
+        next: () => this.drawerOpen.set(false),
+        error: () => this.state.showToast('error', 'FAILED TO UPDATE CATEGORY'),
       });
     } else {
-      this.state.addCategory({
-        name:        this.formName(),
-        description: this.formDescription(),
+      this.categoryApi.create(payload).subscribe({
+        next: () => this.drawerOpen.set(false),
+        error: () => this.state.showToast('error', 'FAILED TO CREATE CATEGORY'),
       });
     }
-    this.drawerOpen.set(false);
   }
 
   confirmDelete() {
     const id = this.deleteId();
     if (!id) return;
-    this.state.deleteCategory(id);
-    this.deleteId.set(null);
+    this.categoryApi.delete(id).subscribe({
+      next: () => this.deleteId.set(null),
+      error: () => this.state.showToast('error', 'FAILED TO DELETE CATEGORY'),
+    });
   }
 }
