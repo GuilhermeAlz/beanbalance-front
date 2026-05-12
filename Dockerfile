@@ -1,4 +1,4 @@
-# ── Stage 1: Build Angular app ────────────────────────────────
+# Build Angular app
 FROM node:22-alpine AS build
 
 WORKDIR /app
@@ -9,7 +9,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# ── Stage 2: Serve with nginx ──────────────────────────────────
+# Serve with nginx
 FROM nginx:alpine
 
 COPY --from=build /app/dist/beanbalance-front/browser /usr/share/nginx/html
