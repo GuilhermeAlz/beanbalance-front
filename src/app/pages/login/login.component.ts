@@ -2,6 +2,7 @@ import { Component, signal, computed, inject } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { NgStyle } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
+import { AuthApiService } from '../../core/services/auth-api.service';
 
 @Component({
   selector: 'app-login',
@@ -13,12 +14,14 @@ import { AppStateService } from '../../core/services/app-state.service';
 export class LoginComponent {
   private router = inject(Router);
   private state = inject(AppStateService);
+  private authApi = inject(AuthApiService);
 
   email = signal('');
   password = signal('');
   emailFocused = signal(false);
   passFocused = signal(false);
   submitHovered = signal(false);
+  isLoading = signal(false);
 
   emailInputStyle = computed(() => ({
     width: '100%',
@@ -63,10 +66,15 @@ export class LoginComponent {
 
   handleSubmit(e: Event) {
     e.preventDefault();
-    if (this.email() && this.password()) {
-      const username = this.email().split('@')[0] || 'user';
-      this.state.login(username);
-      this.router.navigate(['/dashboard']);
-    }
+    if (!this.email() || !this.password() || this.isLoading()) return;
+
+    this.isLoading.set(true);
+    this.authApi.login(this.email(), this.password()).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: () => {
+        this.state.showToast('error', 'INVALID CREDENTIALS');
+        this.isLoading.set(false);
+      },
+    });
   }
 }

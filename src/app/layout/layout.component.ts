@@ -2,6 +2,7 @@ import { Component, signal, inject, computed } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { NgStyle } from '@angular/common';
 import { AppStateService } from '../core/services/app-state.service';
+import { AuthApiService } from '../core/services/auth-api.service';
 import { ToastContainerComponent } from '../shared/toast-container/toast-container.component';
 import { filter, map, startWith } from 'rxjs/operators';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -24,6 +25,7 @@ const navItems = [
 export class LayoutComponent {
   private router = inject(Router);
   state = inject(AppStateService);
+  private authApi = inject(AuthApiService);
 
   collapsed = signal(false);
   logoutHovered = signal(false);
@@ -42,8 +44,10 @@ export class LayoutComponent {
   }
 
   handleLogout() {
-    this.state.logout();
-    this.router.navigate(['/login']);
+    this.authApi.logout().subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: () => this.router.navigate(['/login']),
+    });
   }
 
   sidebarStyle = computed(() => ({

@@ -2,6 +2,7 @@ import { Component, signal, computed, inject } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { NgStyle } from '@angular/common';
 import { AppStateService } from '../../core/services/app-state.service';
+import { AuthApiService } from '../../core/services/auth-api.service';
 
 @Component({
   selector: 'app-register',
@@ -13,6 +14,7 @@ import { AppStateService } from '../../core/services/app-state.service';
 export class RegisterComponent {
   private router = inject(Router);
   private state = inject(AppStateService);
+  private authApi = inject(AuthApiService);
 
   username = signal('');
   email = signal('');
@@ -20,6 +22,7 @@ export class RegisterComponent {
   errors = signal<Record<string, string>>({});
   focused = signal<Record<string, boolean>>({});
   submitHovered = signal(false);
+  isLoading = signal(false);
 
   submitBtnStyle = computed(() => ({
     width: '100%',
@@ -74,7 +77,16 @@ export class RegisterComponent {
       this.errors.set(errs);
       return;
     }
-    this.state.login(this.username());
-    this.router.navigate(['/dashboard']);
+    if (this.isLoading()) return;
+
+    this.isLoading.set(true);
+    this.authApi.register(this.username(), this.email(), this.password()).subscribe({
+      next: () => this.router.navigate(['/dashboard']),
+      error: (err) => {
+        const message = err.status === 409 ? 'EMAIL OR USERNAME ALREADY IN USE' : 'REGISTRATION FAILED';
+        this.state.showToast('error', message);
+        this.isLoading.set(false);
+      },
+    });
   }
 }

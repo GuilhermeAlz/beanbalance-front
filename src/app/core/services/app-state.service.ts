@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import {
   Account,
   Transaction,
@@ -6,6 +6,7 @@ import {
   Budget,
   Toast,
 } from '../models/app.models';
+import { AuthStorageService } from './auth-storage.service';
 
 // Mock data
 
@@ -65,9 +66,11 @@ export function formatDate(dateStr: string): string {
 
 @Injectable({ providedIn: 'root' })
 export class AppStateService {
-    
-  readonly isLoggedIn  = signal(true);
-  readonly username    = signal('guilherme');
+
+  private readonly storage = inject(AuthStorageService);
+
+  readonly isLoggedIn = signal(this.storage.hasTokens());
+  readonly username   = signal(this.storage.getUsername() ?? '');
   readonly accounts    = signal<Account[]>(initialAccounts);
   readonly transactions = signal<Transaction[]>(initialTransactions);
   readonly categories  = signal<Category[]>(initialCategories);
